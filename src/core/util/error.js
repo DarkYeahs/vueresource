@@ -32,7 +32,7 @@ export function handleError (err: Error, vm: any, info: string) {
     popTarget()
   }
 }
-
+// 函数调用错误统一管理
 export function invokeWithErrorHandling (
   handler: Function,
   context: any,

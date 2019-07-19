@@ -39,6 +39,8 @@ function createOnceHandler (event, fn) {
   }
 }
 
+// 对当前实例进行绑定事件的更新操作
+// 其中在这里统一添加了报错事件函数处理流程
 export function updateComponentListeners (
   vm: Component,
   listeners: Object,
@@ -53,6 +55,8 @@ export function eventsMixin (Vue: Class<Component>) {
   const hookRE = /^hook:/
   Vue.prototype.$on = function (event: string | Array<string>, fn: Function): Component {
     const vm: Component = this
+    // 如果传入的events是一个数组的话通过调用实例上的$on进行注册监听
+    // 传入的是单个的话则直接进行注册处理
     if (Array.isArray(event)) {
       for (let i = 0, l = event.length; i < l; i++) {
         vm.$on(event[i], fn)
@@ -61,6 +65,8 @@ export function eventsMixin (Vue: Class<Component>) {
       (vm._events[event] || (vm._events[event] = [])).push(fn)
       // optimize hook:event cost by using a boolean flag marked at registration
       // instead of a hash lookup
+      // 通过使用在注册时进行标记当前的钩子函数而不是通过哈希查找的方式
+      // 从而减少搜索成本
       if (hookRE.test(event)) {
         vm._hasHookEvent = true
       }
@@ -82,11 +88,13 @@ export function eventsMixin (Vue: Class<Component>) {
   Vue.prototype.$off = function (event?: string | Array<string>, fn?: Function): Component {
     const vm: Component = this
     // all
+    // 如果没有传入参数，则默认移除全部事件的监听
     if (!arguments.length) {
       vm._events = Object.create(null)
       return vm
     }
     // array of events
+    // 如果传入的是数组，则通过实例的$off进行事件监听的移除
     if (Array.isArray(event)) {
       for (let i = 0, l = event.length; i < l; i++) {
         vm.$off(event[i], fn)
@@ -98,6 +106,7 @@ export function eventsMixin (Vue: Class<Component>) {
     if (!cbs) {
       return vm
     }
+    // 如果没有传入具体监听处理的函数，则移除所有的处理函数
     if (!fn) {
       vm._events[event] = null
       return vm
@@ -132,9 +141,11 @@ export function eventsMixin (Vue: Class<Component>) {
     let cbs = vm._events[event]
     if (cbs) {
       cbs = cbs.length > 1 ? toArray(cbs) : cbs
+      // 数组化传入的参数
       const args = toArray(arguments, 1)
       const info = `event handler for "${event}"`
       for (let i = 0, l = cbs.length; i < l; i++) {
+        // 调用注册的处理函数并绑定出错处理
         invokeWithErrorHandling(cbs[i], vm, args, vm, info)
       }
     }

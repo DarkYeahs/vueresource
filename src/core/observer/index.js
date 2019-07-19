@@ -21,6 +21,7 @@ const arrayKeys = Object.getOwnPropertyNames(arrayMethods)
 /**
  * In some cases we may want to disable observation inside a component's
  * update computation.
+ * 某些情况我们可能希望在组件的更新计算中禁用观察
  */
 export let shouldObserve: boolean = true
 
@@ -131,6 +132,7 @@ export function observe (value: any, asRootData: ?boolean): Observer | void {
 
 /**
  * Define a reactive property on an Object.
+ * 在对象上构建数据的双向绑定
  */
 export function defineReactive (
   obj: Object,
@@ -139,20 +141,26 @@ export function defineReactive (
   customSetter?: ?Function,
   shallow?: boolean
 ) {
+  // 建立dep构建数据更新初始化
   const dep = new Dep()
-
+  // 如果属性不可枚举，则直接返回
   const property = Object.getOwnPropertyDescriptor(obj, key)
   if (property && property.configurable === false) {
     return
   }
 
   // cater for pre-defined getter/setters
+  // 获取预定义的getter和setter
   const getter = property && property.get
   const setter = property && property.set
+  // 如果该属性没有getter函数或者只有setter函数并且没有传入val
+  // 则设置默认的val数值
+  // 看记录是为了避免在初始化观察的时候调用getter而做的操作
+  // 不确定是因为啥问题导致getter调用出问题
   if ((!getter || setter) && arguments.length === 2) {
     val = obj[key]
   }
-
+  // 建立观察操作
   let childOb = !shallow && observe(val)
   Object.defineProperty(obj, key, {
     enumerable: true,
@@ -162,7 +170,9 @@ export function defineReactive (
       if (Dep.target) {
         dep.depend()
         if (childOb) {
+          // 建立对当前数据的观察
           childOb.dep.depend()
+          // 如果是数组，则递归对其子元素数据构建数据绑定的初始化
           if (Array.isArray(value)) {
             dependArray(value)
           }
@@ -173,6 +183,7 @@ export function defineReactive (
     set: function reactiveSetter (newVal) {
       const value = getter ? getter.call(obj) : val
       /* eslint-disable no-self-compare */
+      // 如果数据没发生变更，则不进行更新处理
       if (newVal === value || (newVal !== newVal && value !== value)) {
         return
       }
@@ -182,12 +193,15 @@ export function defineReactive (
       }
       // #7981: for accessor properties without setter
       if (getter && !setter) return
+      // 存在setter函数才执行setter函数调用
       if (setter) {
         setter.call(obj, newVal)
       } else {
         val = newVal
       }
+      // 对于新赋予的数据重新建立观察
       childOb = !shallow && observe(newVal)
+      // 通知关联的数据进行更新操作并更新到对应的
       dep.notify()
     }
   })

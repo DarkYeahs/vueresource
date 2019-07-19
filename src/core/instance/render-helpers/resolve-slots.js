@@ -9,6 +9,7 @@ export function resolveSlots (
   children: ?Array<VNode>,
   context: ?Component
 ): { [key: string]: Array<VNode> } {
+  // 如果没有子节点，则返回一个空对象
   if (!children || !children.length) {
     return {}
   }
@@ -17,11 +18,15 @@ export function resolveSlots (
     const child = children[i]
     const data = child.data
     // remove slot attribute if the node is resolved as a Vue slot node
+    // 如果该节点是Vue的一个slot节点，则移除data上的属性数据种的slot数据
     if (data && data.attrs && data.attrs.slot) {
       delete data.attrs.slot
     }
     // named slots should only be respected if the vnode was rendered in the
     // same context.
+    // 只有在同一个上下文进行渲染的时候，具名slots才应该被呈现
+    // respected个人理解为呈现
+    // 也就是当children的上下文后者函数上下文与传入的上下文一致才进行渲染操作
     if ((child.context === context || child.fnContext === context) &&
       data && data.slot != null
     ) {
@@ -37,11 +42,13 @@ export function resolveSlots (
     }
   }
   // ignore slots that contains only whitespace
+  // 移除slots名仅包含空格的slots
   for (const name in slots) {
     if (slots[name].every(isWhitespace)) {
       delete slots[name]
     }
   }
+  // 返回处理后的slots
   return slots
 }
 

@@ -4,12 +4,13 @@
 import { noop } from 'shared/util'
 import { handleError } from './error'
 import { isIE, isIOS, isNative } from './env'
-
+// 标识当前是否是使用微任务队列进行nextTick的执行
 export let isUsingMicroTask = false
 
 const callbacks = []
 let pending = false
-
+// 在多个微任务队列执行
+// 每个微任务执行的时候会将当前的队列浅复制并进行重置
 function flushCallbacks () {
   pending = false
   const copies = callbacks.slice(0)
@@ -39,6 +40,10 @@ let timerFunc
 // completely stops working after triggering a few times... so, if native
 // Promise is available, we will use it:
 /* istanbul ignore next, $flow-disable-line */
+// 通过使用原生的Promise.then或者MutationObserver来实现微任务队列
+// 因为MutationObserver在iOS9.3.3以上存在较大的bug，所以尽管MutationObserver的兼容性
+// 比Promise更广泛的支持，但我们仍会优先使用Promise.then
+// 优雅降级：Promise.then -> MutationObserver -> setImmediate -> setTimeout
 if (typeof Promise !== 'undefined' && isNative(Promise)) {
   const p = Promise.resolve()
   timerFunc = () => {
@@ -48,6 +53,8 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
     // microtask queue but the queue isn't being flushed, until the browser
     // needs to do some other work, e.g. handle a timer. Therefore we can
     // "force" the microtask queue to be flushed by adding an empty timer.
+    // 处理某些问题的webview出现的场景：Promise.then将任务推入微任务队列后未执行
+    // 直到浏览器执行其他任务后才开始执行
     if (isIOS) setTimeout(noop)
   }
   isUsingMicroTask = true
@@ -67,6 +74,7 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
   })
   timerFunc = () => {
     counter = (counter + 1) % 2
+    // 触发flushCallbacks的调用
     textNode.data = String(counter)
   }
   isUsingMicroTask = true

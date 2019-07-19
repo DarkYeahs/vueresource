@@ -34,6 +34,7 @@ export function initLifecycle (vm: Component) {
 
   // locate first non-abstract parent
   let parent = options.parent
+  // 找到第一个非抽象父级，并将实例 push到该对象的$children
   if (parent && !options.abstract) {
     while (parent.$options.abstract && parent.$parent) {
       parent = parent.$parent
@@ -49,9 +50,13 @@ export function initLifecycle (vm: Component) {
 
   vm._watcher = null
   vm._inactive = null
+  // 当前实例是否无效实例 ？？？
   vm._directInactive = false
+  // 当前实例mounted变量初始化
   vm._isMounted = false
+  // 当前实例destoryed变量初始化
   vm._isDestroyed = false
+  // 当前实例处于销毁阶段变量初始化
   vm._isBeingDestroyed = false
 }
 
@@ -60,10 +65,13 @@ export function lifecycleMixin (Vue: Class<Component>) {
     const vm: Component = this
     const prevEl = vm.$el
     const prevVnode = vm._vnode
+    // 设置当前实例处于活动状态
     const restoreActiveInstance = setActiveInstance(vm)
     vm._vnode = vnode
     // Vue.prototype.__patch__ is injected in entry points
     // based on the rendering backend used.
+    // 如果之前不存在vNode节点，则进行dom节点的初始化
+    // 存在的话则根据之前的vNode节点进行更新操作
     if (!prevVnode) {
       // initial render
       vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false /* removeOnly */)
@@ -71,8 +79,10 @@ export function lifecycleMixin (Vue: Class<Component>) {
       // updates
       vm.$el = vm.__patch__(prevVnode, vnode)
     }
+    // 恢复之前的实例
     restoreActiveInstance()
     // update __vue__ reference
+    // 更新__vue__的引用
     if (prevEl) {
       prevEl.__vue__ = null
     }
@@ -80,13 +90,14 @@ export function lifecycleMixin (Vue: Class<Component>) {
       vm.$el.__vue__ = vm
     }
     // if parent is an HOC, update its $el as well
+    // 如果父级是高阶容器，则同时更新父级的$el
     if (vm.$vnode && vm.$parent && vm.$vnode === vm.$parent._vnode) {
       vm.$parent.$el = vm.$el
     }
     // updated hook is called by the scheduler to ensure that children are
     // updated in a parent's updated hook.
   }
-
+  // 强制当前实例进行watcher的更新从而更新view
   Vue.prototype.$forceUpdate = function () {
     const vm: Component = this
     if (vm._watcher) {
@@ -96,38 +107,52 @@ export function lifecycleMixin (Vue: Class<Component>) {
 
   Vue.prototype.$destroy = function () {
     const vm: Component = this
+    // 判断实例当前是否正在被销毁，是的话直接返回
     if (vm._isBeingDestroyed) {
       return
     }
+    // 执行beforeDestory钩子函数
     callHook(vm, 'beforeDestroy')
+    // 设定实例正在被销毁标识
     vm._isBeingDestroyed = true
+    // 将实例本身重父级做移除操作
+    // 父级不在销毁状态且父级不是抽象的
     // remove self from parent
     const parent = vm.$parent
     if (parent && !parent._isBeingDestroyed && !vm.$options.abstract) {
       remove(parent.$children, vm)
     }
     // teardown watchers
+    // 取消该实例上的订阅
     if (vm._watcher) {
       vm._watcher.teardown()
     }
+    // 取消watchers上的订阅
     let i = vm._watchers.length
     while (i--) {
       vm._watchers[i].teardown()
     }
     // remove reference from data ob
     // frozen object may not have observer.
+    // 从data的__ob__上移除引用
+    // frozen对象上可能不存在观察者
     if (vm._data.__ob__) {
       vm._data.__ob__.vmCount--
     }
     // call the last hook...
+    // 标识当前实例已经被销毁
     vm._isDestroyed = true
     // invoke destroy hooks on current rendered tree
+    // 从dom树中移除实例对应的dom子树
     vm.__patch__(vm._vnode, null)
     // fire destroyed hook
+    // 触发destory钩子函数
     callHook(vm, 'destroyed')
     // turn off all instance listeners.
+    // 移除所有事件监听
     vm.$off()
     // remove __vue__ reference
+    // 移除实例上对__vue__的引用
     if (vm.$el) {
       vm.$el.__vue__ = null
     }

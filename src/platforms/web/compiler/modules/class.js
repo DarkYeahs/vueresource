@@ -7,8 +7,10 @@ import {
   baseWarn
 } from 'compiler/helpers'
 
+// 处理节点上的静态class并绑定在el上
 function transformNode (el: ASTElement, options: CompilerOptions) {
   const warn = options.warn || baseWarn
+  // 获取静态class
   const staticClass = getAndRemoveAttr(el, 'class')
   if (process.env.NODE_ENV !== 'production' && staticClass) {
     const res = parseText(staticClass, options.delimiters)

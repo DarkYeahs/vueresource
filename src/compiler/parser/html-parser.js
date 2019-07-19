@@ -63,21 +63,27 @@ export function parseHTML (html, options) {
     // Make sure we're not in a plaintext content element like script/style
     if (!lastTag || !isPlainTextElement(lastTag)) {
       let textEnd = html.indexOf('<')
+      // 匹配html的第一个字符
+      // 如果是标签的第一个字符，则进行标签检测
       if (textEnd === 0) {
         // Comment:
+        // 检测是不是注释标签，是的话进行注释标签的裁剪
         if (comment.test(html)) {
           const commentEnd = html.indexOf('-->')
 
           if (commentEnd >= 0) {
+            // 如果需要进行保留注释，则将结果进行保留操作
             if (options.shouldKeepComment) {
               options.comment(html.substring(4, commentEnd), index, index + commentEnd + 3)
             }
+            // 将当前检测的注释代码裁剪掉，继续进行检测
             advance(commentEnd + 3)
             continue
           }
         }
 
         // http://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
+        // 判断是不是额外的注释代码，是的话则进行裁剪操作
         if (conditionalComment.test(html)) {
           const conditionalEnd = html.indexOf(']>')
 
@@ -88,6 +94,8 @@ export function parseHTML (html, options) {
         }
 
         // Doctype:
+        // 判断当前是不是Doctype标签
+        // 是的话进行裁剪操作
         const doctypeMatch = html.match(doctype)
         if (doctypeMatch) {
           advance(doctypeMatch[0].length)
@@ -95,6 +103,8 @@ export function parseHTML (html, options) {
         }
 
         // End tag:
+        // 判断当前是不是关闭标签
+        // 是的话进行与之前的开始标签进行一个匹配操作
         const endTagMatch = html.match(endTag)
         if (endTagMatch) {
           const curIndex = index
@@ -104,8 +114,11 @@ export function parseHTML (html, options) {
         }
 
         // Start tag:
+        // 尝试获取当前的开始标签信息
+        // 获取失败返回undefined
         const startTagMatch = parseStartTag()
         if (startTagMatch) {
+          // 获取成功，对返回的开始标签信息进行处理
           handleStartTag(startTagMatch)
           if (shouldIgnoreFirstNewline(startTagMatch.tagName, html)) {
             advance(1)
@@ -113,7 +126,7 @@ export function parseHTML (html, options) {
           continue
         }
       }
-
+      // 获取文本节点
       let text, rest, next
       if (textEnd >= 0) {
         rest = html.slice(textEnd)
@@ -131,7 +144,7 @@ export function parseHTML (html, options) {
         }
         text = html.substring(0, textEnd)
       }
-
+      // 搜索不到<字符，将整个html当做文本处理
       if (textEnd < 0) {
         text = html
       }
@@ -183,24 +196,30 @@ export function parseHTML (html, options) {
     index += n
     html = html.substring(n)
   }
-
+  // 解析开始标签并返回相应的解析信息
   function parseStartTag () {
+    // 匹配html字符串开头是不是开始标签
     const start = html.match(startTagOpen)
+    // 匹配成功
     if (start) {
       const match = {
         tagName: start[1],
         attrs: [],
         start: index
       }
+      // 裁剪掉匹配的开始标签字符串的tagName
       advance(start[0].length)
       let end, attr
+      // 收集该开始标签上的各种属性
       while (!(end = html.match(startTagClose)) && (attr = html.match(dynamicArgAttribute) || html.match(attribute))) {
         attr.start = index
         advance(attr[0].length)
         attr.end = index
         match.attrs.push(attr)
       }
+      // 记录该开始标签的结束信息并返回该开始标签的相关信息
       if (end) {
+        // 判断当前开始标签是否单个的关闭标签<input /> <br />
         match.unarySlash = end[1]
         advance(end[0].length)
         match.end = index
@@ -212,7 +231,7 @@ export function parseHTML (html, options) {
   function handleStartTag (match) {
     const tagName = match.tagName
     const unarySlash = match.unarySlash
-
+    // 不太清除这个配置项有啥要求，后续加上
     if (expectHTML) {
       if (lastTag === 'p' && isNonPhrasingTag(tagName)) {
         parseEndTag(lastTag)
@@ -221,9 +240,11 @@ export function parseHTML (html, options) {
         parseEndTag(tagName)
       }
     }
-
+    // 判断当前是否为单个的关闭标签
+    // 例子：<br />
     const unary = isUnaryTag(tagName) || !!unarySlash
 
+    // 对该开始标签上的属性列表进行整理操作
     const l = match.attrs.length
     const attrs = new Array(l)
     for (let i = 0; i < l; i++) {
@@ -241,12 +262,13 @@ export function parseHTML (html, options) {
         attrs[i].end = args.end
       }
     }
-
+    // 如果当前开始标签不是单个关闭标签
+    // 则将其推入栈等待与结束标签的匹配
     if (!unary) {
       stack.push({ tag: tagName, lowerCasedTag: tagName.toLowerCase(), attrs: attrs, start: match.start, end: match.end })
       lastTag = tagName
     }
-
+    // 对属性进行相应的指令编译操作
     if (options.start) {
       options.start(tagName, attrs, unary, match.start, match.end)
     }
@@ -269,9 +291,14 @@ export function parseHTML (html, options) {
       // If no tag name is provided, clean shop
       pos = 0
     }
-
+    // 获取对应的开始标签位置
+    // 获取不到时进行判断是否为br以及p标签操作
+    // 这样处理的方式不清楚原因，后续看下
     if (pos >= 0) {
       // Close all the open elements, up the stack
+      // 关闭开始标签对应的位置之上的所有标签
+      // 因为没有对应的关闭标签进行匹配
+      // 直接进行关闭操作
       for (let i = stack.length - 1; i >= pos; i--) {
         if (process.env.NODE_ENV !== 'production' &&
           (i > pos || !tagName) &&

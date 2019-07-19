@@ -10,7 +10,7 @@ export function baseWarn (msg: string, range?: Range) {
   console.error(`[Vue compiler]: ${msg}`)
 }
 /* eslint-enable no-unused-vars */
-
+// 获取modules每个子元素对应的key的数据并整理收集到一个数组中进行返回
 export function pluckModuleFunction<F: Function> (
   modules: ?Array<Object>,
   key: string
@@ -180,6 +180,7 @@ export function getBindingAttr (
 // doesn't get processed by processAttrs.
 // By default it does NOT remove it from the map (attrsMap) because the map is
 // needed during codegen.
+// 获取并删除相应的属性数据
 export function getAndRemoveAttr (
   el: ASTElement,
   name: string,

@@ -16,6 +16,7 @@ export function initProvide (vm: Component) {
 export function initInjections (vm: Component) {
   const result = resolveInject(vm.$options.inject, vm)
   if (result) {
+    // 关闭观察功能
     toggleObserving(false)
     Object.keys(result).forEach(key => {
       /* istanbul ignore else */
@@ -32,6 +33,7 @@ export function initInjections (vm: Component) {
         defineReactive(vm, key, result[key])
       }
     })
+    // 开启观察功能
     toggleObserving(true)
   }
 }

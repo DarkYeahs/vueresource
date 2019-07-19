@@ -86,6 +86,7 @@ export function parse (
   platformMustUseProp = options.mustUseProp || no
   platformGetTagNamespace = options.getTagNamespace || no
   const isReservedTag = options.isReservedTag || no
+  // 判断tag是否为组件
   maybeComponent = (el: ASTElement) => !!el.component || !isReservedTag(el.tag)
 
   transforms = pluckModuleFunction(options.modules, 'transformNode')
@@ -260,6 +261,7 @@ export function parse (
       }
 
       // apply pre-transforms
+      // 处理input节点上的相关指令并做相关的绑定处理
       for (let i = 0; i < preTransforms.length; i++) {
         element = preTransforms[i](element, options) || element
       }
@@ -398,13 +400,13 @@ export function parse (
   })
   return root
 }
-
+// 判断是否用v-pre指令，有的话设定el.pre = true
 function processPre (el) {
   if (getAndRemoveAttr(el, 'v-pre') != null) {
     el.pre = true
   }
 }
-
+// 将el上的数据处理后加在el的attrs上
 function processRawAttrs (el) {
   const list = el.attrsList
   const len = list.length
@@ -444,13 +446,14 @@ export function processElement (
   processSlotContent(element)
   processSlotOutlet(element)
   processComponent(element)
+  // 处理每个节点上对应的静态class
   for (let i = 0; i < transforms.length; i++) {
     element = transforms[i](element, options) || element
   }
   processAttrs(element)
   return element
 }
-
+// 获取el上的key值
 function processKey (el) {
   const exp = getBindingAttr(el, 'key')
   if (exp) {
@@ -477,7 +480,7 @@ function processKey (el) {
     el.key = exp
   }
 }
-
+// 获取el的ref数值
 function processRef (el) {
   const ref = getBindingAttr(el, 'ref')
   if (ref) {
@@ -485,12 +488,14 @@ function processRef (el) {
     el.refInFor = checkInFor(el)
   }
 }
-
+// 处理el上的v-for指令
 export function processFor (el: ASTElement) {
   let exp
   if ((exp = getAndRemoveAttr(el, 'v-for'))) {
+    // 解析v-for表达式
     const res = parseFor(exp)
     if (res) {
+      // 将解析结果绑定在el上
       extend(el, res)
     } else if (process.env.NODE_ENV !== 'production') {
       warn(
@@ -507,16 +512,37 @@ type ForParseResult = {
   iterator1?: string;
   iterator2?: string;
 };
-
+// 解析v-for属性值对应的表达式
 export function parseFor (exp: string): ?ForParseResult {
   const inMatch = exp.match(forAliasRE)
+  // 匹配结果
+  // demo exp = '(item, index) in obj.test'
+  /*
+  *[
+  * 0: "(item, index) in obj.test"
+  * 1: "(item, index)"
+  * 2: "obj.test"
+  * groups: undefined
+  * index: 0
+  * input: "(item, index) in obj.test"
+  *]
+  */
   if (!inMatch) return
   const res = {}
+  // 遍历对象
   res.for = inMatch[2].trim()
+  // 获取迭代属性名
+  // demo "(item, index)"
+  // result "item, index"
   const alias = inMatch[1].trim().replace(stripParensRE, '')
+  // 获取迭代器的key值
+  // demo "item, index"
+  // result [", index", " index", undefined, index: 4, input: "item, index", groups: undefined]
   const iteratorMatch = alias.match(forIteratorRE)
   if (iteratorMatch) {
+    // 获取子元素属性名 item
     res.alias = alias.replace(forIteratorRE, '').trim()
+    // 获取key属性名
     res.iterator1 = iteratorMatch[1].trim()
     if (iteratorMatch[2]) {
       res.iterator2 = iteratorMatch[2].trim()
@@ -526,7 +552,9 @@ export function parseFor (exp: string): ?ForParseResult {
   }
   return res
 }
-
+// 处理v-if指令并将结果存储在el的ifConditions上
+// 处理v-else指令并将结果存储在el的else属性上
+// 处理v-else-if并将结果存储在el的elseif属性上
 function processIf (el) {
   const exp = getAndRemoveAttr(el, 'v-if')
   if (exp) {
@@ -586,7 +614,7 @@ export function addIfCondition (el: ASTElement, condition: ASTIfCondition) {
   }
   el.ifConditions.push(condition)
 }
-
+// 处理v-once指令并将数据存储在once上
 function processOnce (el) {
   const once = getAndRemoveAttr(el, 'v-once')
   if (once != null) {
@@ -596,8 +624,11 @@ function processOnce (el) {
 
 // handle content being passed to a component as slot,
 // e.g. <template slot="xxx">, <div slot-scope="xxx">
+// 处理作为具名slot的元素
 function processSlotContent (el) {
   let slotScope
+  // 如果是teamplate元素，则获取scope或者slot-scope并处理识别为slotScope
+  // scope是2.5版本以前的属性，2.5以后使用slot-scope
   if (el.tag === 'template') {
     slotScope = getAndRemoveAttr(el, 'scope')
     /* istanbul ignore if */
@@ -627,6 +658,7 @@ function processSlotContent (el) {
   }
 
   // slot="xxx"
+  // 获取具名slot
   const slotTarget = getBindingAttr(el, 'slot')
   if (slotTarget) {
     el.slotTarget = slotTarget === '""' ? '"default"' : slotTarget
@@ -891,7 +923,7 @@ function processAttrs (el) {
     }
   }
 }
-
+// 判断元素是否处于v-for指令的后代元素中
 function checkInFor (el: ASTElement): boolean {
   let parent = el
   while (parent) {

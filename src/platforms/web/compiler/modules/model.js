@@ -22,7 +22,7 @@ import {
   addIfCondition,
   createASTElement
 } from 'compiler/parser/index'
-
+// 对input标签上的相关指令进行预处理
 function preTransformNode (el: ASTElement, options: CompilerOptions) {
   if (el.tag === 'input') {
     const map = el.attrsMap
@@ -77,7 +77,7 @@ function preTransformNode (el: ASTElement, options: CompilerOptions) {
       if (hasElse) {
         branch0.else = true
       } else if (elseIfCondition) {
-        branch0.elseif = elseIfCondition
+        branch0.elseif = elseIfCondition 
       }
 
       return branch0

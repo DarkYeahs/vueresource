@@ -17,17 +17,22 @@ import VNode, { createEmptyVNode } from '../vdom/vnode'
 import { isUpdatingChildComponent } from './lifecycle'
 
 export function initRender (vm: Component) {
+  // 整个实例的根节点
   vm._vnode = null // the root of the child tree
+  // v-once指令缓存的树数据
   vm._staticTrees = null // v-once cached trees
   const options = vm.$options
   const parentVnode = vm.$vnode = options._parentVnode // the placeholder node in parent tree
   const renderContext = parentVnode && parentVnode.context
+  // 获取处理后的slots数据
   vm.$slots = resolveSlots(options._renderChildren, renderContext)
+  // 初始化$scopedSlots变量
   vm.$scopedSlots = emptyObject
   // bind the createElement fn to this instance
   // so that we get proper render context inside it.
   // args order: tag, data, children, normalizationType, alwaysNormalize
   // internal version is used by render functions compiled from templates
+  // 绑定创建节点操作的函数
   vm._c = (a, b, c, d) => createElement(vm, a, b, c, d, false)
   // normalization is always applied for the public version, used in
   // user-written render functions.
@@ -35,9 +40,11 @@ export function initRender (vm: Component) {
 
   // $attrs & $listeners are exposed for easier HOC creation.
   // they need to be reactive so that HOCs using them are always updated
+  // 为了更容易创建高阶容器（HOC），暴漏parentVnode上的$attrs以及$listeners数据
   const parentData = parentVnode && parentVnode.data
 
   /* istanbul ignore else */
+  // 通过建立对$attrs以及$listeners数据的双向绑定操作实现对数据的暴漏
   if (process.env.NODE_ENV !== 'production') {
     defineReactive(vm, '$attrs', parentData && parentData.attrs || emptyObject, () => {
       !isUpdatingChildComponent && warn(`$attrs is readonly.`, vm)
@@ -69,7 +76,7 @@ export function renderMixin (Vue: Class<Component>) {
   Vue.prototype._render = function (): VNode {
     const vm: Component = this
     const { render, _parentVnode } = vm.$options
-
+    // 如果存在父级，则初始化实例上的$scopedSlots
     if (_parentVnode) {
       vm.$scopedSlots = normalizeScopedSlots(
         _parentVnode.data.scopedSlots,
@@ -80,6 +87,7 @@ export function renderMixin (Vue: Class<Component>) {
 
     // set parent vnode. this allows render functions to have access
     // to the data on the placeholder node.
+    // 设置当前实例VNode为父级VNode以便于可以访问占位VNode的数据
     vm.$vnode = _parentVnode
     // render self
     let vnode
@@ -87,7 +95,11 @@ export function renderMixin (Vue: Class<Component>) {
       // There's no need to maintain a stack because all render fns are called
       // separately from one another. Nested component's render fns are called
       // when parent component is patched.
+      // 设置当前的渲染实例
+      // 因为渲染是单例的，所以不必维护一个渲染列表
       currentRenderingInstance = vm
+      // 进行渲染操作
+      // render是在compile的时候注入的
       vnode = render.call(vm._renderProxy, vm.$createElement)
     } catch (e) {
       handleError(e, vm, `render`)
